@@ -73,6 +73,8 @@ def get_yahoo_events(filenames):
         print("Skipped events:", skipped)
 
 
+
+'''
 def max_articles(n_articles):
     """
     Reduces the number of articles to the threshold provided.
@@ -105,3 +107,4 @@ def max_articles(n_articles):
 
     n_events = len(events)
     print("Number of events:", n_events)
+'''

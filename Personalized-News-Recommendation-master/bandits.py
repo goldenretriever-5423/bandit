@@ -91,6 +91,7 @@ class LinUCB:
         self.A_inv[a] = np.linalg.inv(self.A[a])
 
 
+'''
 class ThompsonSampling:
     """
     Thompson sampling algorithm implementation
@@ -250,3 +251,4 @@ class Egreedy:
 
         self.n[a] += 1
         self.q[a] += (reward - self.q[a]) / self.n[a]
+'''
