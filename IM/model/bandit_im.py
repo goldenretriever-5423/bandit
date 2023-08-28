@@ -27,47 +27,6 @@ from joblib import Parallel, delayed
 
 import warnings
 
-warnings.filterwarnings("ignore")
-
-NUM_CORES = 25
-NRUNS = 50
-
-BUDGET = 3000
-K = 10
-DCONTEXT = 14  # length of context vector
-delta = 0.01 #TODO to be discussed
-
-
-np.random.seed(100)
-
-INFLUENCERS = [130734452, 95023423, 972651, 26257166, 125786481, 14511951, 233430873, 807095, 126400767, 813286]
-K = len(INFLUENCERS)
-
-# date;regular_node_id;influencer;original_tweet;context;regular_node_count;unique_activations;selections;new_activations
-# tweets = pd.read_csv("data_processing/6_date_sorted_influencer_context_data_acts_set_24.csv", delimiter=";")
-tweets = pd.read_csv("data_processing/6_date_sorted_influencer_10context_data.csv", delimiter=";")
-MAX_NA = float(tweets.new_activations.max())
-MAX_LOG_NA = np.log(tweets.new_activations.max())
-
-
-
-tweets.regular_node_set_unique = tweets.regular_node_set_unique.apply(
-    lambda txt: set([int(i) for i in txt.strip("'[").strip("]'").split() if i.isdigit()]))
-
-# all the contexts
-twitter_contexts = tweets.context
-# needed as vector for the regressions
-twitter_contexts = list(map(lambda context: np.array(context.split(), dtype=float), twitter_contexts)) # list of context array
-
-used_contexts = set()
-
-np.random.seed(100)
-seeds = dict.fromkeys(list(set([np.random.randint(1000) for _ in np.arange(NRUNS + 10)]))[:NRUNS])
-for seed in seeds.keys():
-    np.random.seed(seed)
-    context_idx = list(set([np.random.randint(0, len(twitter_contexts)) for _ in np.arange(BUDGET + 100)]))[:BUDGET]
-    seeds[seed] = [twitter_contexts[idx] for idx in context_idx] # map to corresponding seed, to build id
-
 
 def get_reward(context, influencer_idx):
     influencer = INFLUENCERS[influencer_idx]
@@ -97,7 +56,7 @@ def get_tweet(context, influencer_idx):
     return tweet
 
 
-def get_seed_tweets(contexts):
+def get_seed_tweets(contexts): # taking too much time, why can't just use direct mapping?
     campaign = []
     for context in contexts:
         tweets = pd.DataFrame()
@@ -111,11 +70,7 @@ def get_seed_tweets(contexts):
 # LinUCB
 ##################################################################
 def linucb_reward_and_selections(seed, campaign, contexts, lognorm=False):
-    T = 50
-    # H = 30
-    L = 2
-    # BUDGET = T * H
-    H = 30
+
     BUDGET = H
 
     # 1-delta confidence interval
@@ -152,7 +107,7 @@ def linucb_reward_and_selections(seed, campaign, contexts, lognorm=False):
 
             activations_hist_lin_all.append(reward)
             influencer_hist_lin.append(k)
-            training_reward = np.log(reward + 1) / MAX_LOG_NA if lognorm else reward / MAX_NA
+            training_reward = np.log(reward + 1) / MAX_LOG_NA if lognorm else reward / MAX_NA ## a scaling process, map # of nodes activated into [0,1]
             V[k] += np.matmul(context[np.newaxis].T, context[np.newaxis])
             observed_reward[k] += training_reward * context
             selections_hist[k] += 1
@@ -205,7 +160,60 @@ def linucb_reward_and_selections(seed, campaign, contexts, lognorm=False):
 
 
 if __name__ == '__main__':
-    seeds = []
-    context = []
-    campain = []
-    h1, h2 = linucb_reward_and_selections(seeds, campain, context)
+    os.chdir('/media/yuting/TOSHIBA EXT/retweet/data_processing/')
+
+    warnings.filterwarnings("ignore")
+
+    NUM_CORES = 25
+    NRUNS = 50  # T
+
+    BUDGET = 3000
+    DCONTEXT = 14  # length of context vector
+    delta = 0.01  # TODO to be discussed
+
+    np.random.seed(100)
+
+    INFLUENCERS = [130734452, 95023423, 972651, 26257166, 125786481, 14511951, 233430873, 807095, 126400767, 813286]
+    K = len(INFLUENCERS)  # # of total arms to be selected
+
+    # date;regular_node_id;influencer;original_tweet;context;regular_node_count;unique_activations;selections;new_activations
+    # tweets = pd.read_csv("data_processing/6_date_sorted_influencer_context_data_acts_set_24.csv", delimiter=";")
+    tweets = pd.read_csv("6_date_sorted_influencer_10context_data.csv", delimiter=";")
+    MAX_NA = float(tweets.new_activations.max())  # maximum new acticated nodes
+    MAX_LOG_NA = np.log(tweets.new_activations.max())  # TODO to be dicussed
+
+    tweets.regular_node_set_unique = tweets.regular_node_set_unique.apply(
+        lambda txt: set([int(i) for i in txt.strip("'[").strip("]'").split() if i.isdigit()]))
+
+    # all the contexts
+    twitter_contexts = tweets.context
+    # needed as vector for the regressions
+    twitter_contexts = list(
+        map(lambda context: np.array(context.split(), dtype=float), twitter_contexts))  # list of context array
+
+    used_contexts = set()
+
+    np.random.seed(100)
+    seeds = dict.fromkeys(
+        list(set([np.random.randint(1000) for _ in np.arange(NRUNS + 10)]))[:NRUNS])  # set the random seeds
+    for seed in seeds.keys():
+        np.random.seed(seed)
+        context_idx = list(set([np.random.randint(0, len(twitter_contexts)) for _ in np.arange(BUDGET + 100)]))[:BUDGET]
+        seeds[seed] = [twitter_contexts[idx] for idx in context_idx]  # map to corresponding seed, to build id
+
+    H1 = []
+    H2 = []
+    for l in [1]: # select one influencer for each round [1,2,5]
+
+        T = 50
+        H = 30
+        L = l
+        # BUDGET = T * H
+
+        for seed in seeds:
+            np.random.seed(seed)
+            contexts = seeds[seed]
+            tweets = get_seed_tweets(contexts)
+            h1, h2 = linucb_reward_and_selections(seeds, tweets, contexts)
+            H1.append(h1)
+            H2.append(h2)

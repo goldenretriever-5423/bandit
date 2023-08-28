@@ -52,6 +52,6 @@ for row in data.itertuples():
 
 # messy entries
 #data.drop('regular_node', axis=1, inplace=True)
-data.drop('regular_node_set_unique', axis=1, inplace=True)
+# data.drop('regular_node_set_unique', axis=1, inplace=True)
 
 data.to_csv("6_date_sorted_influencer_10context_data.csv", sep=";", index=False)
