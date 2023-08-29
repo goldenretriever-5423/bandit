@@ -59,10 +59,10 @@ def get_tweet(context, influencer_idx):
 def get_seed_tweets(contexts): # taking too much time, why can't just use direct mapping?
     campaign = []
     for context in contexts:
-        tweets = pd.DataFrame()
+        tweets_temp = pd.DataFrame()
         for influencer_idx in np.arange(K):
-            tweets = pd.concat([tweets, get_tweet(context, influencer_idx)])
-        campaign.append(tweets)
+            tweets_temp = pd.concat([tweets_temp, get_tweet(context, influencer_idx)])
+        campaign.append(tweets_temp)
     return campaign
 
 
@@ -213,7 +213,7 @@ if __name__ == '__main__':
         for seed in seeds:
             np.random.seed(seed)
             contexts = seeds[seed]
-            tweets = get_seed_tweets(contexts)
-            h1, h2 = linucb_reward_and_selections(seeds, tweets, contexts)
+            seed_tweets = get_seed_tweets(contexts)
+            h1, h2 = linucb_reward_and_selections(seeds, seed_tweets, contexts)
             H1.append(h1)
             H2.append(h2)
