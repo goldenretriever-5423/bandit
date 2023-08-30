@@ -52,7 +52,7 @@ def get_tweet(context, influencer_idx):
     tweet = tweets.loc[tweets.context == ' '.join(context[:DCONTEXT + 1].astype(str)), :].loc[
         tweets.influencer == influencer]
     if tweet.size > 0:
-        tweet = tweet.sample()
+        tweet = tweet.sample() # why here return only one row? remove duplicated?
     return tweet
 
 
@@ -61,7 +61,7 @@ def get_seed_tweets(contexts): # taking too much time, why can't just use direct
     for context in contexts:
         tweets_temp = pd.DataFrame()
         for influencer_idx in np.arange(K):
-            tweets_temp = pd.concat([tweets_temp, get_tweet(context, influencer_idx)])
+            tweets_temp = pd.concat([tweets_temp, get_tweet(context, influencer_idx)])  # get the data of influencers who send out this one msg/context
         campaign.append(tweets_temp)
     return campaign
 
@@ -79,7 +79,7 @@ def linucb_reward_and_selections(seed, campaign, contexts, lognorm=False):
     influencer_hist_lin = []
     activations_hist_lin_all = []
 
-    for tt in range(T):
+    for tt in range(T): # what is the difference with budget
         theta_estimators = np.empty(shape=(BUDGET, K, DCONTEXT))  # for each round, for each influencer
         reward_estimators = np.empty(shape=(BUDGET, K))  # for each round, for each influencer
 
@@ -161,6 +161,7 @@ def linucb_reward_and_selections(seed, campaign, contexts, lognorm=False):
 
 if __name__ == '__main__':
     os.chdir('/media/yuting/TOSHIBA EXT/retweet/data_processing/')
+    # os.chdir('../data_processing/')
 
     warnings.filterwarnings("ignore")
 
@@ -191,22 +192,22 @@ if __name__ == '__main__':
     twitter_contexts = list(
         map(lambda context: np.array(context.split(), dtype=float), twitter_contexts))  # list of context array
 
-    used_contexts = set()
+    used_contexts = set() # why set a used_context?
 
     np.random.seed(100)
     seeds = dict.fromkeys(
         list(set([np.random.randint(1000) for _ in np.arange(NRUNS + 10)]))[:NRUNS])  # set the random seeds
     for seed in seeds.keys():
         np.random.seed(seed)
-        context_idx = list(set([np.random.randint(0, len(twitter_contexts)) for _ in np.arange(BUDGET + 100)]))[:BUDGET]
+        context_idx = list(set([np.random.randint(0, len(twitter_contexts)) for _ in np.arange(BUDGET + 100)]))[:BUDGET] # select the context for running
         seeds[seed] = [twitter_contexts[idx] for idx in context_idx]  # map to corresponding seed, to build id
 
     H1 = []
     H2 = []
     for l in [1]: # select one influencer for each round [1,2,5]
 
-        T = 50
-        H = 30
+        T = 50 # is T the number of rums? NRUNS?
+        H = 30 # and what is H?
         L = l
         # BUDGET = T * H
 
