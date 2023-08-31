@@ -69,7 +69,7 @@ def get_seed_tweets(contexts): # taking too much time, why can't just use direct
 ##################################################################
 # LinUCB
 ##################################################################
-def linucb_reward_and_selections(seed, campaign, contexts, lognorm=False):
+def linucb_reward_and_selections(seed, campaign, contexts):
 
     BUDGET = H
 
@@ -107,7 +107,8 @@ def linucb_reward_and_selections(seed, campaign, contexts, lognorm=False):
 
             activations_hist_lin_all.append(reward)
             influencer_hist_lin.append(k)
-            training_reward = np.log(reward + 1) / MAX_LOG_NA if lognorm else reward / MAX_NA ## a scaling process, map # of nodes activated into [0,1]
+            # training_reward = np.log(reward + 1) / MAX_LOG_NA if lognorm else reward / MAX_NA ## a scaling process, map # of nodes activated into [0,1]
+            training_reward = reward / MAX_NA
             V[k] += np.matmul(context[np.newaxis].T, context[np.newaxis])
             observed_reward[k] += training_reward * context
             selections_hist[k] += 1
@@ -149,7 +150,8 @@ def linucb_reward_and_selections(seed, campaign, contexts, lognorm=False):
 
             activations_hist_lin_all.append(reward)
 
-            training_reward = np.log(reward / L + 1) / MAX_LOG_NA if lognorm else reward / L / MAX_NA
+            # training_reward = np.log(reward / L + 1) / MAX_LOG_NA if lognorm else reward / L / MAX_NA
+            training_reward = reward / MAX_NA
             for best_k in best_ks:
                 V[best_k] += np.matmul(context[np.newaxis].T, context[np.newaxis])
                 observed_reward[best_k] += training_reward * context
