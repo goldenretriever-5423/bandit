@@ -22,7 +22,9 @@ Files description
 - model
     - bandit_im.py bandit for IM problem, some hyperparameters to be discussed
 
-## bandit for news recommendation, based on Yahoo dataset
+## Bandit for news recommendation, based on Yahoo dataset
+This implementation is based on [A Contextual-Bandit Approach to Personalized News Article Recommendation](https://arxiv.org/pdf/2201.05231.pdf)
+![image](algo2.png)
 - dataset.py 
     - preprocess of Yahoo data for news recommendation
     - example of data format Line format for yahoo events:
