@@ -52,7 +52,7 @@ def get_tweet(context, influencer_idx):
     tweet = tweets.loc[tweets.context == ' '.join(context[:DCONTEXT + 1].astype(str)), :].loc[
         tweets.influencer == influencer]
     if tweet.size > 0:
-        tweet = tweet.sample() # why here return only one row? remove duplicated?
+        tweet = tweet.sample() # remove duplicated
     return tweet
 
 
@@ -87,7 +87,7 @@ def linucb_reward_and_selections(seed, campaign, contexts):
         selections_hist = dict.fromkeys(np.arange(K), 0)
 
         V = [np.diag(np.ones(DCONTEXT)) for _ in np.arange(K)] # A identity matrix
-        observed_reward = [np.zeros(DCONTEXT) for _ in np.arange(K)] # b d=24 context length
+        observed_reward = [np.zeros(DCONTEXT) for _ in np.arange(K)] # b d=14 context length
 
         prev_activated = set()
 
@@ -121,7 +121,7 @@ def linucb_reward_and_selections(seed, campaign, contexts):
             context = np.nan_to_num(context)
             context = preprocessing.normalize(context[:, np.newaxis], axis=0, norm='l2').ravel()
             for k in np.arange(K):
-                inv_V = np.linalg.inv(V[k])
+                inv_V = np.linalg.inv(V[k])  # matrix A^-1
                 theta_estimators[t, k] = inv_V.dot(observed_reward[k])
                 theta_estimators[t, k] = np.nan_to_num(theta_estimators[t, k])
                 theta_estimators[t, k] = preprocessing.normalize(theta_estimators[t, k][:, np.newaxis], axis=0,
@@ -136,7 +136,7 @@ def linucb_reward_and_selections(seed, campaign, contexts):
                 # chosen influencer
                 best_k = np.argmax(reward_estimators[t])
                 best_ks.append(best_k)
-                reward_estimators[t][best_k] = 0
+                reward_estimators[t][best_k] = 0  # why reset it to 0?
                 influencer_hist_lin.append(best_k)
                 # t -> tt
                 tweet = campaign[tt * H + t][campaign[tt * H + t].influencer == INFLUENCERS[best_k]]
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     # tweets = pd.read_csv("data_processing/6_date_sorted_influencer_context_data_acts_set_24.csv", delimiter=";")
     tweets = pd.read_csv("6_date_sorted_influencer_10context_data.csv", delimiter=";")
     MAX_NA = float(tweets.new_activations.max())  # maximum new acticated nodes
-    MAX_LOG_NA = np.log(tweets.new_activations.max())  # TODO to be dicussed
+    MAX_LOG_NA = np.log(tweets.new_activations.max())  # TODO to be dicussed==
 
     tweets.regular_node_set_unique = tweets.regular_node_set_unique.apply(
         lambda txt: set([int(i) for i in txt.strip("'[").strip("]'").split() if i.isdigit()]))
@@ -204,8 +204,10 @@ if __name__ == '__main__':
         context_idx = list(set([np.random.randint(0, len(twitter_contexts)) for _ in np.arange(BUDGET + 100)]))[:BUDGET] # select the context for running
         seeds[seed] = [twitter_contexts[idx] for idx in context_idx]  # map to corresponding seed, to build id
 
-    H1 = []
-    H2 = []
+
+
+
+    rewards_df = pd.DataFrame()
     for l in [1]: # select one influencer for each round [1,2,5]
 
         T = 50 # is T the number of rums? NRUNS?
@@ -214,9 +216,25 @@ if __name__ == '__main__':
         # BUDGET = T * H
 
         for seed in seeds:
+
+            reward_df = pd.DataFrame()
+
             np.random.seed(seed)
             contexts = seeds[seed]
             seed_tweets = get_seed_tweets(contexts)
-            h1, h2 = linucb_reward_and_selections(seeds, seed_tweets, contexts)
-            H1.append(h1)
-            H2.append(h2)
+
+            # get the results
+            activations_hist_lsvigt_all, influencer_hist_lsvigt = linucb_reward_and_selections(seeds, seed_tweets, contexts)
+            to_add = pd.DataFrame({'reward': np.cumsum(activations_hist_lsvigt_all)})
+            to_add['seed'] = seed
+            to_add['algorithm'] = 'LinUCB'
+            to_add['round'] = to_add.index + 1
+            to_add['horizon'] = H
+            to_add['episode'] = T
+            to_add['elapsed_time'] = 'elapsed_time'
+            reward_df = pd.concat([reward_df, to_add])
+
+            rewards_df = rewards_df.append(reward_df)
+
+
+
